@@ -16,6 +16,10 @@ from .models.word import Word
 from .db.seed import seed_all  # Import the seeding function
 import os
 import logging  # Import logging
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -24,9 +28,10 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="HagXwon API")
 
 # CORS configuration
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -5,7 +5,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # Database configurations
-SQLITE_DB_PATH = os.getenv("SQLITE_DB_PATH", "/app/data/hagxwon.db")
+SQLITE_DB_PATH = os.getenv("SQLITE_DB_PATH", "./data/hagxwon.db")
 print(f"Using database at: {SQLITE_DB_PATH}")
 VECTOR_DB_PATH = str(PROJECT_ROOT / "database" / "vector_store")
 
