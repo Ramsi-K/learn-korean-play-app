@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import HealthIndicator from './HealthIndicator';
 
 const navItems = [
   { path: '/', label: 'Dashboard' },
@@ -22,18 +23,21 @@ const Navbar = () => {
             <span className="text-2xl font-bold neon-text">HagXwon</span>
           </Link>
           
-          <div className="hidden md:flex space-x-4">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`btn-futuristic ${
-                  location.pathname === item.path ? 'neon-glow' : ''
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+          <div className="flex items-center space-x-6">
+            <div className="hidden md:flex space-x-4">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`btn-futuristic ${
+                    location.pathname === item.path ? 'neon-glow' : ''
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+            <HealthIndicator />
           </div>
         </div>
       </div>

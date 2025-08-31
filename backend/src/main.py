@@ -14,6 +14,7 @@ from .api.routes.study_activities import router as study_activities_router
 from .database import init_db, async_session_factory, get_db
 from .models.word import Word
 from .db.seed import seed_all  # Import the seeding function
+from .services.groq_service import groq_service
 import os
 import logging  # Import logging
 from dotenv import load_dotenv
@@ -63,7 +64,32 @@ async def list_routes():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    """Enhanced health check with database and Groq API validation."""
+    health_status = {"status": "healthy", "database": "ok", "groq_api": "ok"}
+
+    # Check database connection
+    try:
+        async with async_session_factory() as db:
+            # Try a simple query to verify database connectivity
+            result = await db.execute(select(Word).limit(1))
+            result.scalar_one_or_none()  # This will raise if DB is not accessible
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        health_status["database"] = "error"
+        health_status["status"] = "unhealthy"
+
+    # Check Groq API connectivity
+    try:
+        groq_test_result = await groq_service.test_connection()
+        if "error" in groq_test_result:
+            health_status["groq_api"] = "error"
+            health_status["status"] = "unhealthy"
+    except Exception as e:
+        logger.error(f"Groq API health check failed: {e}")
+        health_status["groq_api"] = "error"
+        health_status["status"] = "unhealthy"
+
+    return health_status
 
 
 @app.on_event("startup")

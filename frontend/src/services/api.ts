@@ -45,3 +45,36 @@ export async function apiRequest<T>(
     throw error;
   }
 }
+
+/**
+ * Health check types
+ */
+export interface HealthStatus {
+  status: 'healthy' | 'unhealthy';
+  database: 'ok' | 'error';
+  groq_api: 'ok' | 'error';
+}
+
+/**
+ * Check system health
+ */
+export async function checkHealth(): Promise<HealthStatus> {
+  try {
+    // Health endpoint is not under /api prefix
+    const response = await fetch(`${API_BASE_URL.replace('/api', '')}/health`);
+    
+    if (!response.ok) {
+      throw new Error(`Health check failed: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Health check failed:', error);
+    // Return unhealthy status if health check fails
+    return {
+      status: 'unhealthy',
+      database: 'error',
+      groq_api: 'error'
+    };
+  }
+}
