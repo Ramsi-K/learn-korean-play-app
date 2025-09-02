@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from ...models.group import WordGroup
 from ...models.word import Word, word_group_map
 

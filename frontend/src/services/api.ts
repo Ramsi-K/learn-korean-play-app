@@ -78,3 +78,56 @@ export async function checkHealth(): Promise<HealthStatus> {
     };
   }
 }
+
+/**
+ * Word types for API
+ */
+export interface WordResponse {
+  id: number;
+  korean: string;
+  english: string;
+  part_of_speech?: string;
+  romanization?: string;
+  topik_level?: number;
+  source_type?: string;
+  source_details?: string;
+  added_by_agent?: string;
+  created_at: string;
+}
+
+export interface PracticeRequest {
+  practice_type?: string;
+}
+
+export interface PracticeResponse {
+  content: string;
+  type: string;
+  word_id: number;
+}
+
+/**
+ * Fetch list of words with pagination
+ */
+export async function getWords(skip: number = 0, limit: number = 20): Promise<WordResponse[]> {
+  return apiRequest<WordResponse[]>(`words?skip=${skip}&limit=${limit}`);
+}
+
+/**
+ * Get a single word by ID
+ */
+export async function getWord(wordId: number): Promise<WordResponse> {
+  return apiRequest<WordResponse>(`words/${wordId}`);
+}
+
+/**
+ * Generate AI practice content for a word
+ */
+export async function generatePracticeContent(
+  wordId: number, 
+  practiceType: string = 'definition'
+): Promise<PracticeResponse> {
+  return apiRequest<PracticeResponse>(`words/${wordId}/practice`, {
+    method: 'POST',
+    body: { practice_type: practiceType }
+  });
+}

@@ -1,21 +1,81 @@
 from fastapi import APIRouter, HTTPException
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
-# Removed unused Depends, AsyncSession, get_db
-from ...db.init_db import reset_all, reset_session
-
-# from ...database import get_db # Not used here
+from ...database import async_session_factory
+from ...db.seed.words import load_words
+from ...db.seed.groups import load_groups
+from ...db.seed.sentences import load_sentences
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.post("/reset/all")
 async def reset_database():
-    """Reset entire database"""
+    """Reset entire database and reseed with fresh data"""
     try:
-        reset_all()
-        return {"status": "success", "message": "Database fully reset"}
+        # Clear all tables in reverse dependency order
+        async with async_session_factory() as db:
+            tables_to_clear = [
+                "word_group_map",  # Association table first
+                "sample_sentences",
+                "activity_logs",
+                "word_stats",
+                "wrong_inputs",
+                "word_review_items",
+                "words",
+                "word_groups",
+                "study_sessions",
+            ]
+
+            for table in tables_to_clear:
+                try:
+                    await db.execute(text(f"DELETE FROM {table}"))
+                except Exception:
+                    pass  # Table might not exist
+
+            # Reset auto-increment counters
+            tables_with_auto_increment = [
+                "words",
+                "word_groups",
+                "sample_sentences",
+                "activity_logs",
+                "word_stats",
+                "wrong_inputs",
+                "word_review_items",
+                "study_sessions",
+            ]
+
+            for table in tables_with_auto_increment:
+                try:
+                    await db.execute(
+                        text(
+                            f"DELETE FROM sqlite_sequence WHERE name='{table}'"
+                        )
+                    )
+                except Exception:
+                    pass  # Sequence might not exist
+
+            await db.commit()
+
+        # Reseed with fresh data
+        async with async_session_factory() as db:
+            await load_words(db)
+
+        async with async_session_factory() as db:
+            await load_groups(db)
+
+        async with async_session_factory() as db:
+            await load_sentences(db)
+
+        return {
+            "status": "success",
+            "message": "Database fully reset and reseeded with fresh Korean learning data",
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500, detail=f"Database reset failed: {str(e)}"
+        )
 
 
 @router.post("/reset/session/{session_id}")

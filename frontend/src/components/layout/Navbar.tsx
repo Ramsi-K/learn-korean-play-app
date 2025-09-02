@@ -4,12 +4,8 @@ import HealthIndicator from './HealthIndicator';
 
 const navItems = [
   { path: '/', label: 'Dashboard' },
-  { path: '/word-practice', label: 'Words' },
-  { path: '/listening-practice', label: 'Listening' },
-  { path: '/sentence-practice', label: 'Sentences' },
-  { path: '/games/muncher', label: 'Word Muncher' },
-  { path: '/study-history', label: 'History' },
-  { path: '/admin', label: 'Admin' },
+  { path: '/practice', label: 'Practice' },
+  { path: '/arcade', label: 'Arcade' },
 ];
 
 const Navbar = () => {

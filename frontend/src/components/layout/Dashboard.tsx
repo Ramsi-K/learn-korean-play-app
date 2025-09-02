@@ -1,125 +1,148 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { api } from '../../lib/api';
-import type { DashboardStats, StudyProgress, StudyActivity } from '../../types/api';
+import { Link } from 'react-router-dom';
+import { checkHealth } from '../../services/api';
 
-const DEFAULT_ACTIVITIES = [
-  {
-    id: 1,
-    name: "Flashcards",
-    url: "/flashcards",
-    thumbnail_url: "/images/flashcards.png",
-  },
-  {
-    id: 2,
-    name: "Listening",
-    url: "/listening-practice",
-    thumbnail_url: "/images/listening.png",
-  },
-  {
-    id: 3,
-    name: "Writing",
-    url: "/writing",
-    thumbnail_url: "/images/writing.png",
-  },
-  {
-    id: 4,
-    name: "Word Muncher",
-    url: "/games/muncher",
-    thumbnail_url: "/images/muncher.png",
-  }
-];
+interface QuickStats {
+  total_words: number;
+  total_sessions: number;
+  total_mistakes: number;
+}
+
+interface HealthStatus {
+  status: 'healthy' | 'unhealthy';
+  database: 'ok' | 'error';
+  groq_api: 'ok' | 'error';
+}
 
 const Dashboard = () => {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [progress, setProgress] = useState<StudyProgress | null>(null);
-  const [activities, setActivities] = useState<StudyActivity[]>([]);
-  const navigate = useNavigate();
+  const [stats, setStats] = useState<QuickStats | null>(null);
+  const [health, setHealth] = useState<HealthStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        const [statsData, progressData, activitiesData] = await Promise.all([
-          api.getDashboardStats(),
-          api.getStudyProgress(),
-          api.getStudyActivities(),
-        ]);
+        setLoading(true);
+        setError(null);
+
+        // Get health status
+        const healthData = await checkHealth();
+        setHealth(healthData);
+
+        // Get quick stats from the API
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+        const response = await fetch(`${API_URL}/dashboard/quick-stats`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch stats: ${response.status}`);
+        }
+        
+        const statsData = await response.json();
         setStats(statsData);
-        setProgress(progressData);
-        setActivities(activitiesData.length ? activitiesData : DEFAULT_ACTIVITIES);
       } catch (error) {
         console.error('Failed to load dashboard data:', error);
-        setActivities(DEFAULT_ACTIVITIES); // Fallback to default activities
+        setError(error instanceof Error ? error.message : 'Failed to load dashboard');
+      } finally {
+        setLoading(false);
       }
     };
+
     loadDashboard();
   }, []);
 
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div className="flex items-center justify-center p-8">
+          <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+          <span className="ml-2">Loading dashboard...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Quick Stats */}
-        <div className="hud-element">
-          <h2 className="text-xl font-bold mb-4 neon-text">Quick Stats</h2>
-          {stats && (
+      <h1 className="text-3xl font-bold">Dashboard</h1>
+      
+      {error && (
+        <div className="bg-red-500/20 border border-red-500/50 p-4 rounded-lg">
+          <p className="text-red-200">Error: {error}</p>
+        </div>
+      )}
+
+      {/* Quick Stats */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-blue-500/20 border border-blue-500/50 p-6 rounded-lg">
+          <h2 className="text-xl font-bold mb-4">Quick Stats</h2>
+          {stats ? (
             <div className="space-y-2">
-              <p>Total Words: {stats.total_words}</p>
-              <p>Total Groups: {stats.total_groups}</p>
-              <p>Study Sessions: {stats.total_sessions}</p>
+              <p>Total Words: <span className="font-bold text-blue-300">{stats.total_words}</span></p>
+              <p>Study Sessions: <span className="font-bold text-blue-300">{stats.total_sessions}</span></p>
+              <p>Total Mistakes: <span className="font-bold text-blue-300">{stats.total_mistakes}</span></p>
             </div>
+          ) : (
+            <p className="text-gray-400">Stats unavailable</p>
           )}
         </div>
 
-        {/* Study Progress */}
-        <div className="hud-element">
-          <h2 className="text-xl font-bold mb-4 neon-text">Progress</h2>
-          {progress && (
+        {/* Health Status */}
+        <div className="bg-green-500/20 border border-green-500/50 p-6 rounded-lg">
+          <h2 className="text-xl font-bold mb-4">System Health</h2>
+          {health ? (
             <div className="space-y-2">
-              <p>Correct: {progress.correct}</p>
-              <p>Incorrect: {progress.incorrect}</p>
-              <div className="progress-bar" />
+              <p>Status: <span className={`font-bold ${health.status === 'healthy' ? 'text-green-300' : 'text-red-300'}`}>
+                {health.status}
+              </span></p>
+              <p>Database: <span className={`font-bold ${health.database === 'ok' ? 'text-green-300' : 'text-red-300'}`}>
+                {health.database}
+              </span></p>
+              <p>AI Service: <span className={`font-bold ${health.groq_api === 'ok' ? 'text-green-300' : 'text-red-300'}`}>
+                {health.groq_api}
+              </span></p>
             </div>
+          ) : (
+            <p className="text-gray-400">Health check unavailable</p>
           )}
         </div>
 
         {/* Quick Actions */}
-        <div className="hud-element">
-          <h2 className="text-xl font-bold mb-4 neon-text">Quick Actions</h2>
-          <div className="flex flex-col space-y-2">
-            <Link to="/word-practice" className="btn-futuristic">
-              Start Learning
+        <div className="bg-purple-500/20 border border-purple-500/50 p-6 rounded-lg">
+          <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
+          <div className="flex flex-col space-y-3">
+            <Link 
+              to="/practice" 
+              className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-center transition-colors"
+            >
+              Start Practice
             </Link>
-            <Link to="/games/muncher" className="btn-futuristic">
-              Play Word Muncher
+            <Link 
+              to="/arcade" 
+              className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-center transition-colors"
+            >
+              Play Arcade
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Study Activities Grid */}
-      <section className="grid-pattern p-8 rounded-lg glassmorphism">
-        <h2 className="text-2xl font-bold mb-6 neon-text">Study Activities</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {(activities.length ? activities : DEFAULT_ACTIVITIES).map((activity) => (
-            <div
-              key={activity.id}
-              onClick={() => navigate(activity.url)}
-              className="hud-element hover-glow cursor-pointer transform transition-transform hover:scale-105"
-            >
-              <div className="flex flex-col items-center text-center">
-                {activity.thumbnail_url && (
-                  <img 
-                    src={activity.thumbnail_url} 
-                    alt={activity.name}
-                    className="w-16 h-16 mb-2 opacity-70"
-                  />
-                )}
-                <h3 className="text-lg font-bold neon-text">{activity.name}</h3>
-                <p className="text-sm opacity-70">Practice your skills</p>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Navigation Cards */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Link to="/practice" className="group">
+          <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/50 p-8 rounded-lg hover:border-blue-400 transition-colors">
+            <h3 className="text-2xl font-bold mb-2 group-hover:text-blue-300">Word Practice</h3>
+            <p className="text-gray-300">Practice Korean vocabulary with AI-powered exercises and personalized learning.</p>
+          </div>
+        </Link>
+
+        <Link to="/arcade" className="group">
+          <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-500/50 p-8 rounded-lg hover:border-green-400 transition-colors">
+            <h3 className="text-2xl font-bold mb-2 group-hover:text-green-300">Arcade Games</h3>
+            <p className="text-gray-300">Learn through fun and interactive games designed to improve your Korean skills.</p>
+          </div>
+        </Link>
       </section>
     </div>
   );
