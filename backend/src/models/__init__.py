@@ -11,6 +11,10 @@ from .word_stats import WordStats
 from .wrong_input import WrongInput
 from .word_review_item import WordReviewItem
 from .sample_sentence import SampleSentence
+from .game_session import GameSession
+from .game_result import GameResult
+from .game_item import GameItem
+from .word_review_schedule import WordReviewSchedule
 
 # Update export order
 __all__ = [
@@ -24,4 +28,8 @@ __all__ = [
     "WrongInput",
     "WordReviewItem",
     "SampleSentence",
+    "GameSession",
+    "GameResult",
+    "GameItem",
+    "WordReviewSchedule",
 ]

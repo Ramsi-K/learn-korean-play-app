@@ -10,6 +10,7 @@ from .api.routes.mistakes import router as mistakes_router
 from .api.routes.dashboard import router as dashboard_router
 from .api.routes.admin import router as admin_router
 from .api.routes.study_activities import router as study_activities_router
+from .api.routes.game import router as game_router
 
 from .database import init_db, async_session_factory, get_db
 from .models.word import Word
@@ -48,6 +49,7 @@ app.include_router(mistakes_router, prefix="/api")
 app.include_router(dashboard_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
 app.include_router(study_activities_router, prefix="/api")
+app.include_router(game_router, prefix="/api")
 
 
 @app.get("/debug/routes")
