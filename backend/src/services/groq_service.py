@@ -74,6 +74,50 @@ class GroqService:
                 "message": f"Failed to connect to Groq API: {str(e)}",
             }
 
+    async def generate_completion(self, prompt: str) -> Dict[str, Any]:
+        """
+        Generate a completion using Groq AI with a simple prompt.
+
+        Args:
+            prompt: The prompt to send to the AI
+
+        Returns:
+            Dict with content, model, tokens_used or error information
+        """
+        if not self.is_available():
+            return {
+                "error": "groq_unavailable",
+                "message": "Groq API key not configured or client initialization failed",
+            }
+
+        try:
+            completion = self.client.chat.completions.create(
+                model="openai/gpt-oss-20b",
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=1000,
+            )
+
+            content = completion.choices[0].message.content.strip()
+            tokens_used = (
+                completion.usage.total_tokens if completion.usage else 0
+            )
+
+            return {
+                "content": content,
+                "model": "openai/gpt-oss-20b",
+                "tokens_used": tokens_used,
+            }
+
+        except Exception as e:
+            logger.error(f"Groq completion generation failed: {e}")
+            return {
+                "error": "groq_generation_error",
+                "message": f"Failed to generate completion: {str(e)}",
+            }
+
     async def generate_practice_content(
         self,
         korean_word: str,
