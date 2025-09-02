@@ -16,9 +16,9 @@ async def load_words(db: AsyncSession) -> None:
         for item in data:
             # Convert raw JSON data to expected schema
             word = Word(
-                korean=item.get("korean", ""),  # Add default values
+                korean=item.get("word", ""),  # Use "word" field from JSON
                 english=item.get("meaning", ""),
-                part_of_speech=item.get("part_of_speech"),
+                part_of_speech=item.get("pos"),  # Use "pos" field from JSON
                 romanization=item.get("romanization"),
                 topik_level=item.get("topik_level"),
                 source_type="initial_seed",

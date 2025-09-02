@@ -35,3 +35,28 @@ class WordUpdate(WordBase):
     source_type: Optional[str] = None
     source_details: Optional[str] = None
     added_by_agent: Optional[str] = None
+
+
+class PracticeRequest(BaseModel):
+    practice_type: Optional[str] = Field(
+        default="definition",
+        description="Type of practice content to generate",
+    )
+
+    class Config:
+        schema_extra = {"example": {"practice_type": "definition"}}
+
+
+class PracticeResponse(BaseModel):
+    content: str = Field(description="AI-generated practice content")
+    type: str = Field(description="Type of practice content")
+    word_id: int = Field(description="ID of the word this practice is for")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "content": "The Korean word '안녕하세요' is a formal greeting meaning 'hello' or 'how are you?'",
+                "type": "definition",
+                "word_id": 1,
+            }
+        }

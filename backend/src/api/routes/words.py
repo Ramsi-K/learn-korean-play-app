@@ -6,12 +6,19 @@ from contextlib import asynccontextmanager
 from ...models.word import Word
 from ...models.sample_sentence import SampleSentence
 from ...models.word_stats import WordStats
-from ...schemas.word import WordCreate, WordUpdate, WordResponse
+from ...schemas.word import (
+    WordCreate,
+    WordUpdate,
+    WordResponse,
+    PracticeRequest,
+    PracticeResponse,
+)
 from ...schemas.sample_sentence import (
     SampleSentenceCreate,
     SampleSentenceResponse,
 )
 from ...schemas.word_stats import WordStatsResponse, WordStatsUpdate
+from ...services.groq_service import groq_service
 import logging
 
 router = APIRouter(prefix="/words", tags=["words"])
@@ -256,4 +263,53 @@ async def update_word_stats(
             logger.error(f"Failed to update stats for word {word_id}: {e}")
             raise HTTPException(
                 status_code=500, detail="Failed to update word stats"
+            ) from e
+
+
+@router.post("/{word_id}/practice", response_model=PracticeResponse)
+async def create_practice_content(
+    word_id: int,
+    request: PracticeRequest,
+    db_cm: asynccontextmanager = Depends(get_db),
+):
+    """Generate AI-powered practice content for a word"""
+    async with db_cm as db:
+        # Fetch word from database
+        result = await db.execute(select(Word).filter(Word.id == word_id))
+        word = result.scalar_one_or_none()
+        if not word:
+            raise HTTPException(status_code=404, detail="Word not found")
+
+        # Generate practice content using Groq service
+        try:
+            groq_response = await groq_service.generate_practice_content(
+                korean_word=word.korean,
+                english_translation=word.english,
+                practice_type=request.practice_type or "definition",
+            )
+
+            # Check if Groq service returned an error
+            if "error" in groq_response:
+                logger.error(f"Groq service error: {groq_response}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"AI service error: {groq_response.get('message', 'Unknown error')}",
+                )
+
+            # Return successful response
+            return PracticeResponse(
+                content=groq_response["content"],
+                type=request.practice_type or "definition",
+                word_id=word_id,
+            )
+
+        except HTTPException:
+            # Re-raise HTTP exceptions (like 404, 500)
+            raise
+        except Exception as e:
+            logger.error(
+                f"Unexpected error generating practice content for word {word_id}: {e}"
+            )
+            raise HTTPException(
+                status_code=500, detail="Failed to generate practice content"
             ) from e
